@@ -7,7 +7,7 @@ This project focuses on building a robust data pipeline responsible for feeding 
 ## Pipeline Components
 
 ### Data Source
-- **Source:** CNES (Cadastro Nacional de Estabelecimentos de Saúde)
+- **Source:** FTP Server of CNES (Cadastro Nacional de Estabelecimentos de Saúde)
 - **Data Ingestion:** Automated extraction of data from the CNES database using Spark engine.
 
 ### Data Processing
