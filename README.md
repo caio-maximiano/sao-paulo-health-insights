@@ -29,7 +29,7 @@ This project focuses on building a robust data pipeline responsible for feeding 
 
 ## Project Structure
 
-- **`/app.py`**: Contains scripts and code for the Spark-based data processing pipeline.
+- **`/data_pipeline.py`**: Contains scripts and code for the Spark-based data processing pipeline.
 - **`/postgresql`**: Includes sql files used such some ddl scripts and inserts.
 
 ## Usage
