@@ -117,19 +117,68 @@ def update_table(table_name, file_name, ano_mes):
 
 if __name__ == "__main__":
 
-    # Starting by extracting the .zip file from the CNES server
+    # Starting with the extraction of the .zip file from the CNES server
     extract_zip(ano_mes)
 
-    # Extracting CSV files from the compressed file
+    # Extraction of the csv files from the compressed file
     extract_csv(ano_mes)
 
-    # Creating spark DataFrames from the CSV files to perform transformations
+    # Creating spark DataFrames from the csv files to perform transformations
     tbCargaHorariaSus = get_csv('tbCargaHorariaSus', ano_mes)
     rlEstabServClass = get_csv('rlEstabServClass', ano_mes)
-    # ... (other similar lines)
-    # Transformations of CSV files into two final tables
-    # ... (transformation code)
+    tbAtividadeProfissional = get_csv('tbAtividadeProfissional', ano_mes)
+    tbClassificacaoServico = get_csv('tbClassificacaoServico', ano_mes)
+    tbDadosProfissionalSus = get_csv('tbDadosProfissionalSus', ano_mes)
+    tbEstabelecimento = get_csv('tbEstabelecimento', ano_mes)
+    tbMunicipio = get_csv('tbMunicipio', ano_mes)
+
+    # Transformations of the csv files into two final tables
+    cond_sp = [tbEstabelecimento.CO_MUNICIPIO_GESTOR == tbMunicipio.CO_MUNICIPIO,
+           tbEstabelecimento.CO_ESTADO_GESTOR == 35] #SP
+
+    cond_serv = [rlEstabServClass.CO_SERVICO == tbClassificacaoServico.CO_SERVICO_ESPECIALIZADO,
+        rlEstabServClass.CO_CLASSIFICACAO == tbClassificacaoServico.CO_CLASSIFICACAO_SERVICO]
+
+    estab_munic = tbEstabelecimento.join(tbMunicipio, cond_sp)
+
     
+    df_serv_joined = rlEstabServClass\
+            .join(tbClassificacaoServico, cond_serv)\
+            .join(estab_munic, rlEstabServClass.CO_UNIDADE == estab_munic.CO_UNIDADE)\
+            .select(rlEstabServClass.CO_UNIDADE,
+                estab_munic.NO_MUNICIPIO,
+                estab_munic.CO_MUNICIPIO,
+                rlEstabServClass.CO_SERVICO,
+                rlEstabServClass.CO_CLASSIFICACAO,
+                tbClassificacaoServico.DS_CLASSIFICACAO_SERVICO)\
+            .withColumn('SK_REGISTRO', concat_ws('_',rlEstabServClass.CO_UNIDADE,rlEstabServClass.CO_SERVICO,rlEstabServClass.CO_CLASSIFICACAO))\
+            .withColumn('DATA_INGESTAO', to_date(current_timestamp()))
+
+    df_serv = df_serv_joined.drop_duplicates(['SK_REGISTRO'])
+
+    df_joined = tbCargaHorariaSus\
+    .join(tbAtividadeProfissional, tbCargaHorariaSus.CO_CBO ==tbAtividadeProfissional.CO_CBO)\
+    .join(estab_munic, tbCargaHorariaSus.CO_UNIDADE == estab_munic.CO_UNIDADE)\
+    .join(tbDadosProfissionalSus, tbCargaHorariaSus.CO_PROFISSIONAL_SUS == tbDadosProfissionalSus.CO_PROFISSIONAL_SUS)\
+    .select(tbCargaHorariaSus.CO_UNIDADE,
+            tbCargaHorariaSus.CO_PROFISSIONAL_SUS,
+            tbDadosProfissionalSus.NO_PROFISSIONAL,
+            tbCargaHorariaSus.CO_CBO,
+            tbCargaHorariaSus.TP_SUS_NAO_SUS,            
+            tbAtividadeProfissional.DS_ATIVIDADE_PROFISSIONAL,
+            estab_munic.NO_FANTASIA,
+            estab_munic.NO_BAIRRO,
+            estab_munic.NO_MUNICIPIO,
+            estab_munic.CO_MUNICIPIO,
+            estab_munic.CO_SIGLA_ESTADO,
+            estab_munic.CO_CEP,
+            )\
+    .withColumn('ds_localidade', concat_ws(',',estab_munic.CO_CEP,estab_munic.NO_MUNICIPIO,estab_munic.CO_SIGLA_ESTADO,lit("Brasil")))\
+    .withColumn('SK_REGISTRO', concat_ws('_',tbCargaHorariaSus.CO_UNIDADE,tbCargaHorariaSus.CO_PROFISSIONAL_SUS,tbCargaHorariaSus.CO_CBO))\
+    .withColumn('DATA_INGESTAO', to_date(current_timestamp()))
+    
+    df_final = df_joined.drop_duplicates(['SK_REGISTRO'])
+
     # Writing spark DataFrames to the Curated layer
     write_curated_file(df_final, 'curated_estabelecimentos', ano_mes)
     write_curated_file(df_serv, 'curated_servicos', ano_mes)
