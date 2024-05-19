@@ -25,7 +25,7 @@ This project focuses on building a robust data pipeline responsible for feeding 
 
 ## Dashboard Snapshot
 
-![Dashboard](assets/dashboard.png)
+![Dashboard](assets/dashboard_cnes.png)
 
 ## Project Structure
 
