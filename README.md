@@ -21,7 +21,7 @@ This project focuses on building a robust data pipeline responsible for feeding 
 
 ## Architecture Overview
 
-![Architecture](assets/architecture.png)
+![Architecture](assets/data_flow.png)
 
 ## Dashboard Snapshot
 
